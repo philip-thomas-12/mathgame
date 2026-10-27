@@ -10,6 +10,13 @@ public class Number : MonoBehaviour {
 
     public int value;
 
+    /// <summary>
+    /// Set to true on digits that are spawned as guaranteed answer hints
+    /// (Level 4 / 5). These tokens should NOT cost the player a life if
+    /// they fall past the bottom — they exist purely to give the player
+    /// something to catch.
+    /// </summary>
+    public bool IsAnswerToken;
     bool missReported;
     bool isOperated;
 
@@ -29,7 +36,9 @@ public class Number : MonoBehaviour {
         if (!isOperated && transform.position.y < KillLineY()) {
             if (!missReported) {
                 missReported = true;
-                if (GameDirector.Instance != null) GameDirector.Instance.RegisterMiss();
+                // Answer-hint tokens are helpers, not enemies — no life penalty.
+                if (!IsAnswerToken && GameDirector.Instance != null)
+                    GameDirector.Instance.RegisterMiss();
                 Destroy(gameObject, 1.0f);
             }
         }

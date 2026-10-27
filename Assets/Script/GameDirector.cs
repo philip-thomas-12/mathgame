@@ -653,6 +653,10 @@ public class GameDirector : MonoBehaviour {
             targetText.characterSize = CharSize(0.35f);
             targetText.gameObject.SetActive(true);
         }
+
+        // Guarantee the answer digit falls immediately — tinted gold so the
+        // player can spot and catch it without waiting for random spawns.
+        if (spawner != null) spawner.SpawnGuaranteedAnswerDigit(x, isCyan: false);
     }
 
     public void GenerateNextTrajectoryProblem() {
@@ -701,6 +705,10 @@ public class GameDirector : MonoBehaviour {
             targetText.characterSize = CharSize(0.34f);
             targetText.gameObject.SetActive(true);
         }
+
+        // Guarantee the intercept coordinate falls immediately — tinted cyan so
+        // the player can spot and catch it without waiting for random spawns.
+        if (spawner != null) spawner.SpawnGuaranteedAnswerDigit(target, isCyan: true);
 
         // Spawn real parabolic missile arching across screen!
         Vector3 bossPos = (boss != null) ? boss.transform.position : new Vector3(CamCenter().x, CamCenter().y + 3f, 0f);

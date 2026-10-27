@@ -4,8 +4,12 @@ using UnityEngine;
 /// Spawns falling items: alien numbers (0-9), operator artifacts
 /// (+ - × ÷ ^) and occasionally brackets. GameDirector sets the Mode per
 /// level; quiz modes disable auto-spawning (the director shows questions and
-/// answer options itself), and computer-arithmetic basics adds golden "?"
-/// target artifacts via SpawnDigitTarget.
+/// answer options itself).
+///
+/// Level 4 (AlgebraSolver) and Level 5 (TrajectoryInterceptor) also call
+/// SpawnGuaranteedAnswerDigit() immediately after generating each problem, so
+/// the correct digit is always visible on screen from the moment the question
+/// appears — highlighted in gold/cyan so the player can spot and catch it fast.
 /// </summary>
 public class Spawner : MonoBehaviour {
 
@@ -82,6 +86,80 @@ public class Spawner : MonoBehaviour {
 
         Rigidbody2D velo = x.GetComponent<Rigidbody2D>();
         if (velo != null) velo.linearVelocity = new Vector2(0, -this.velocity * speedMultiplier);
+    }
+
+    // -----------------------------------------------------------------------
+    //  Guaranteed answer digit (Level 4 & 5)
+    // -----------------------------------------------------------------------
+
+    /// <summary>
+    /// Immediately spawns the digit <paramref name="digit"/> at a visible
+    /// top-center position so the player can catch it right away.
+    ///
+    /// Uses a gold tint (algebra) or cyan tint (trajectory) so it stands out
+    /// from ordinary grey alien numbers.  The token still has a tag "number"
+    /// so GameManager can add it to the chain as normal.
+    ///
+    /// The digit is spawned slightly off-center to avoid overlapping with
+    /// the equation text and to give the player a clear target to aim at.
+    /// </summary>
+    public void SpawnGuaranteedAnswerDigit(int digit, bool isCyan = false) {
+        if (digit < 0 || digit > 9) return;   // only single-digit answers supported
+        if (numbers == null || numbers.Length <= digit || numbers[digit] == null) {
+            // Prefab array not wired — create a procedural fallback
+            SpawnProceduralAnswerDigit(digit, isCyan);
+            return;
+        }
+
+        // Spawn from a fixed, visible position near the top-centre.
+        // Slight horizontal offset avoids covering the equation text.
+        Vector2 pos = new Vector2(Random.Range(-0.5f, 0.5f), 8.5f);
+
+        GameObject go = Instantiate(numbers[digit], pos, Quaternion.identity);
+        go.name = digit.ToString();
+
+        Number numComp = go.GetComponent<Number>();
+        if (numComp != null) {
+            numComp.value = digit;
+            numComp.IsAnswerToken = true;   // won't cost a life if missed
+        }
+
+        // Highlight tint so the player knows which digit is the answer
+        SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = go.GetComponentInChildren<SpriteRenderer>();
+        if (sr != null) {
+            sr.color = isCyan ? new Color(0.3f, 0.95f, 1f)   // Level 5: cyan
+                              : new Color(1f,  0.85f, 0.25f); // Level 4: gold
+        }
+
+        // Slightly slower fall so the player has time to react
+        Rigidbody2D rb = go.GetComponent<Rigidbody2D>();
+        if (rb != null) rb.linearVelocity = new Vector2(0f, -Mathf.Max(velocity * 0.70f, 1.4f));
+
+        // Small sparkle VFX at spawn point
+        if (CombatVfx.Instance != null) {
+            CombatVfx.Instance.SpawnPickupSparkle(
+                (Vector3)(pos) + Vector3.down * 0.5f,
+                isCyan ? new Color(0.3f, 0.95f, 1f) : new Color(1f, 0.85f, 0.25f));
+        }
+    }
+
+    /// <summary>Fallback when the numbers prefab array is not set up.
+    /// Creates a procedural text token identical to how OperatorPickup works.
+    /// </summary>
+    void SpawnProceduralAnswerDigit(int digit, bool isCyan) {
+        Vector2 pos = new Vector2(Random.Range(-0.5f, 0.5f), 8.5f);
+        GameObject go = new GameObject(digit.ToString());
+        go.transform.position = pos;
+        go.tag = "number";
+
+        // Reuse OperatorPickup rendering pipeline for a styled text glyph
+        OperatorPickup op = go.AddComponent<OperatorPickup>();
+        op.SetupAnswerDigit(digit, isCyan);
+
+        Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
+        rb.gravityScale = 0f;
+        rb.linearVelocity = new Vector2(0f, -Mathf.Max(velocity * 0.70f, 1.4f));
     }
 
     void SpawnDigitTarget(Vector2 position) {

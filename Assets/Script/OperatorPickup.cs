@@ -50,6 +50,32 @@ public class OperatorPickup : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Procedural fallback for <see cref="Spawner.SpawnGuaranteedAnswerDigit"/> when
+    /// the numbers prefab array is not set up. Renders the digit as a highlighted
+    /// coloured disc (gold for algebra, cyan for trajectory) and attaches a
+    /// <see cref="Number"/> component so the GameManager reads the value correctly.
+    /// </summary>
+    public void SetupAnswerDigit(int digit, bool isCyan) {
+        Symbol = (char)('0' + digit);
+        gameObject.name = digit.ToString();
+        gameObject.tag = "number";
+
+        Color highlight = isCyan ? new Color(0.3f, 0.95f, 1f)
+                                 : new Color(1f,  0.85f, 0.25f);
+        BuildVisual(Symbol, highlight);
+
+        // Attach Number so GameManager.NumberValueOf() can read the value.
+        Number num = gameObject.AddComponent<Number>();
+        num.value = digit;
+        num.IsAnswerToken = true;   // won't cost a life if missed
+
+        if (GetComponent<Collider2D>() == null) {
+            CircleCollider2D col = gameObject.AddComponent<CircleCollider2D>();
+            col.radius = 0.55f;
+        }
+    }
+
     static Color ColorFor(char symbol) {
         switch (symbol) {
             case '+': return new Color(0.35f, 0.90f, 0.40f);
