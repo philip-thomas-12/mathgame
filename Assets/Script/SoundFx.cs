@@ -9,20 +9,30 @@ using UnityEngine;
 public static class SoundFx {
 
     static AudioClip select, reject, fire, hit, miss, levelUp, win, lose, go;
+    static AudioClip explosion, bigExplosion, laser, powerup, shieldHit, shieldBreak, stepClick;
     static AudioClip musicLoop;
     static GameObject musicGo;
     static AudioSource musicSource;
     static bool musicEnabled = true;
 
-    public static void Select()  { Play(Cached(ref select,  delegate { return Tone(880f,  0.05f, 0.22f, 1.5f); })); }
-    public static void Reject()  { Play(Cached(ref reject,  delegate { return Tone(140f,  0.16f, 0.40f, 2.0f); })); }
-    public static void Fire()    { Play(Cached(ref fire,    delegate { return Chirp(900f,  300f,  0.18f, 0.35f); })); }
-    public static void Hit()     { Play(Cached(ref hit,     delegate { return Tone(140f,  0.15f, 0.55f, 3.0f); })); }
-    public static void Miss()    { Play(Cached(ref miss,    delegate { return Chirp(320f,  110f,  0.35f, 0.40f); })); }
-    public static void LevelUp() { Play(Cached(ref levelUp, delegate { return Chirp(440f,  990f,  0.20f, 0.30f); })); }
-    public static void Go()      { Play(Cached(ref go,      delegate { return Tone(540f,  0.14f, 0.30f, 2.0f); })); }
-    public static void Win()     { Play(Cached(ref win,     delegate { return Seq(new float[] { 523f, 659f, 784f, 1047f }, 0.12f, 0.30f); })); }
-    public static void Lose()    { Play(Cached(ref lose,    delegate { return Seq(new float[] { 330f, 262f, 196f, 131f }, 0.20f, 0.35f); })); }
+    public static void Select()      { Play(Cached(ref select,      delegate { return Tone(880f,  0.05f, 0.22f, 1.5f); })); }
+    public static void Reject()      { Play(Cached(ref reject,      delegate { return Tone(140f,  0.16f, 0.40f, 2.0f); })); }
+    public static void Fire()        { Play(Cached(ref fire,        delegate { return Chirp(900f,  300f,  0.18f, 0.35f); })); }
+    public static void Laser()       { Play(Cached(ref laser,       delegate { return Chirp(1300f, 180f,  0.22f, 0.45f); })); }
+    public static void Hit()         { Play(Cached(ref hit,         delegate { return Tone(140f,  0.15f, 0.55f, 3.0f); })); }
+    public static void Explosion(bool big = false) {
+        if (big) Play(Cached(ref bigExplosion, delegate { return Noise(0.35f, 0.75f, 2.2f); }));
+        else Play(Cached(ref explosion, delegate { return Noise(0.22f, 0.55f, 3.0f); }));
+    }
+    public static void Miss()        { Play(Cached(ref miss,        delegate { return Chirp(320f,  110f,  0.35f, 0.40f); })); }
+    public static void LevelUp()     { Play(Cached(ref levelUp,     delegate { return Chirp(440f,  990f,  0.20f, 0.30f); })); }
+    public static void Go()          { Play(Cached(ref go,          delegate { return Tone(540f,  0.14f, 0.30f, 2.0f); })); }
+    public static void Powerup()     { Play(Cached(ref powerup,     delegate { return Seq(new float[] { 523f, 659f, 784f, 1047f }, 0.07f, 0.40f); })); }
+    public static void ShieldHit()   { Play(Cached(ref shieldHit,   delegate { return Tone(1250f, 0.12f, 0.45f, 4.0f); })); }
+    public static void ShieldBreak() { Play(Cached(ref shieldBreak, delegate { return Chirp(1500f, 220f,  0.28f, 0.50f); })); }
+    public static void Step()        { Play(Cached(ref stepClick,   delegate { return Tone(1100f, 0.04f, 0.25f, 2.5f); })); }
+    public static void Win()         { Play(Cached(ref win,         delegate { return Seq(new float[] { 523f, 659f, 784f, 1047f }, 0.12f, 0.30f); })); }
+    public static void Lose()        { Play(Cached(ref lose,        delegate { return Seq(new float[] { 330f, 262f, 196f, 131f }, 0.20f, 0.35f); })); }
 
     static AudioClip Cached(ref AudioClip slot, Func<AudioClip> build) {
         if (slot == null) slot = build();
@@ -164,5 +174,27 @@ public static class SoundFx {
         AudioClip clip = AudioClip.Create("sfx_seq", n, 1, SampleRate, false);
         clip.SetData(data, 0);
         return clip;
+    }
+
+    static AudioClip Noise(float dur, float vol, float decayPow) {
+        int n = Mathf.Max(1, (int)(SampleRate * dur));
+        float[] data = new float[n];
+        float last = 0f;
+        for (int i = 0; i < n; i++) {
+            float white = (UnityEngine.Random.value * 2f - 1f);
+            // Simple low-pass filter to make it sound like a punchy explosion rather than harsh static
+            last = Mathf.Lerp(last, white, 0.35f);
+            float env = Mathf.Pow(1f - (float)i / n, decayPow);
+            data[i] = last * vol * env;
+        }
+        AudioClip clip = AudioClip.Create("sfx_noise", n, 1, SampleRate, false);
+        clip.SetData(data, 0);
+        return clip;
+    }
+
+    public static void SetMusicPitch(float pitch) {
+        if (musicSource != null) {
+            musicSource.pitch = Mathf.Clamp(pitch, 0.8f, 1.3f);
+        }
     }
 }

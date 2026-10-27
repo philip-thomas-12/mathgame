@@ -35,7 +35,9 @@ public class GameManager : MonoBehaviour {
         get {
             if (GameDirector.Instance == null) return true;
             Spawner.Mode m = GameDirector.Instance.CurrentMode;
-            return m == Spawner.Mode.Standard || m == Spawner.Mode.ComputerArithmeticBasics;
+            return m == Spawner.Mode.Standard || 
+                   m == Spawner.Mode.AlgebraSolver || 
+                   m == Spawner.Mode.TrajectoryInterceptor;
         }
     }
 
@@ -84,6 +86,12 @@ public class GameManager : MonoBehaviour {
         Collider2D hit = Physics2D.OverlapPoint(point);
         if (hit == null) return;
 
+        PowerupPickup pup = hit.GetComponent<PowerupPickup>();
+        if (pup != null) {
+            pup.Collect();
+            return;
+        }
+
         GameObject go = hit.transform.gameObject;
         if (go == null || go.tag != "number") return;
 
@@ -130,6 +138,9 @@ public class GameManager : MonoBehaviour {
         Rigidbody2D rb = go.GetComponent<Rigidbody2D>();
         if (rb != null) rb.linearVelocity = Vector2.zero; // freeze while selected
         SoundFx.Select();
+        if (CombatVfx.Instance != null) {
+            CombatVfx.Instance.SpawnPickupSparkle(go.transform.position, token.isOperator ? new Color(0.3f, 0.8f, 1f) : new Color(1f, 0.85f, 0.25f));
+        }
         RefreshPreview();
     }
 
@@ -211,12 +222,19 @@ public class GameManager : MonoBehaviour {
         if (!hasNumber) { Reject("Add at least one number!"); RefreshPreview(); return; }
 
         double value;
-        if (!MathExpr.TryEvaluate(sb.ToString(), out value)) {
+        List<string> steps;
+        if (!MathExpr.TryEvaluateWithSteps(sb.ToString(), out value, out steps)) {
             Reject("Can't divide by 0!");
             return;
         }
 
         int result = Mathf.Clamp(Mathf.RoundToInt((float)value), 0, 99999);
+        if (GameDirector.Instance != null && GameDirector.Instance.HasDoubleDamage) {
+            result *= 2;
+            GameDirector.Instance.ConsumeDoubleDamage();
+            GameDirector.Instance.Popup("2X DAMAGE BONUS!", ChainCenter(), new Color(1f, 0.85f, 0.25f), 0.65f);
+        }
+
         Vector3 mid = ChainCenter();
 
         for (int i = 0; i < chain.Count; i++) {
@@ -227,13 +245,14 @@ public class GameManager : MonoBehaviour {
         chain.Clear();
 
         if (GameDirector.Instance != null) {
-            if (GameDirector.Instance.CurrentMode == Spawner.Mode.ComputerArithmeticBasics) {
-                // Computer arithmetic basics: the value must equal the "?"
-                // target digit — no boss damage, just solve-or-retry.
-                GameDirector.Instance.SubmitArithmeticAnswer(result);
+            if (GameDirector.Instance.CurrentMode == Spawner.Mode.AlgebraSolver ||
+                GameDirector.Instance.CurrentMode == Spawner.Mode.TrajectoryInterceptor) {
+                GameDirector.Instance.SubmitAlgebraOrTrajectoryAnswer(result);
             } else {
                 GameDirector.Instance.RegisterAttack(result, mid);
-                StartCoroutine(instantiateAttackText(result, 0.35f));
+                GameDirector.Instance.PlayBodmasAttack(steps, result, mid, delegate {
+                    StartCoroutine(instantiateAttackText(result, 0.05f));
+                });
             }
         }
         RefreshPreview();
@@ -308,10 +327,13 @@ public class GameManager : MonoBehaviour {
     void RefreshPreview() {
         if (preview == null) return;
         if (chain.Count == 0) {
-            preview.text = (GameDirector.Instance != null &&
-                            GameDirector.Instance.CurrentMode == Spawner.Mode.ComputerArithmeticBasics)
-                ? "build the target digit:  e.g.  5 × 2 − 3"
-                : "build your attack:  e.g.  3 × (8 - 2)";
+            if (GameDirector.Instance != null && GameDirector.Instance.CurrentMode == Spawner.Mode.AlgebraSolver) {
+                preview.text = "calculate x and fire:  e.g.  5  or  (19 - 4) / 3";
+            } else if (GameDirector.Instance != null && GameDirector.Instance.CurrentMode == Spawner.Mode.TrajectoryInterceptor) {
+                preview.text = "enter intercept coordinate x:  e.g.  8";
+            } else {
+                preview.text = "build your attack:  e.g.  3 × (8 - 2)";
+            }
             return;
         }
         System.Text.StringBuilder sb = new System.Text.StringBuilder();

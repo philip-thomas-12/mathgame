@@ -16,13 +16,14 @@ public class Spawner : MonoBehaviour {
     float baseVelocity = 2.5f;
     float bracketToggle;
 
-    /// <summary>Per-level spawning behaviour. Set by GameDirector.StartLevel.</summary>
     public enum Mode {
         Standard,
         Quiz,
         AdvancedQuiz,
-        ComputerArithmeticBasics,
-        ComputerArithmeticQuiz
+        AlgebraSolver,
+        TrajectoryInterceptor,
+        ComputerArithmeticBasics = AlgebraSolver,
+        ComputerArithmeticQuiz = TrajectoryInterceptor
     }
 
     public Mode CurrentMode { get; set; }
@@ -38,29 +39,34 @@ public class Spawner : MonoBehaviour {
         InvokeRepeating("GenerateNumber", 0.2f, baseInterval);
     }
 
+    float speedMultiplier = 1.0f;
+
+    public void SetSpeedMultiplier(float mult) {
+        speedMultiplier = mult;
+        Rigidbody2D[] bodies = FindObjectsByType<Rigidbody2D>(FindObjectsSortMode.None);
+        for (int i = 0; i < bodies.Length; i++) {
+            if (bodies[i] != null && bodies[i].linearVelocity.y < -0.1f) {
+                bodies[i].linearVelocity = new Vector2(0f, -this.velocity * speedMultiplier);
+            }
+        }
+    }
+
     void GenerateNumber() {
         if (GameDirector.Instance == null || !GameDirector.Instance.SpawningEnabled) return;
 
-        // Quiz modes: no falling items — the director shows the question and
-        // answer options itself.
-        if (CurrentMode == Mode.Quiz || CurrentMode == Mode.AdvancedQuiz ||
-            CurrentMode == Mode.ComputerArithmeticQuiz) {
+        // Quiz modes (Level 2 & 3): no falling items
+        if (CurrentMode == Mode.Quiz || CurrentMode == Mode.AdvancedQuiz) {
             return;
         }
 
         Vector2 position = new Vector2(Random.Range(-2.0f, 2.0f), 11f);
         float r = Random.value;
 
-        if (CurrentMode == Mode.ComputerArithmeticBasics) {
-            // Numbers to build answers from, plus "?" target artifacts.
-            if (r < 0.55f) SpawnAlienNumber(position);
-            else if (r < 0.85f) SpawnDigitTarget(position);
-            else SpawnOperator(position);
-        } else {
-            if (r < 0.60f) SpawnAlienNumber(position);
-            else if (r < 0.97f) SpawnOperator(position);
-            else SpawnBracket(position);
-        }
+        // Level 1 (BODMAS), Level 4 (Algebra), and Level 5 (Trajectory) all use falling tokens:
+        if (r < 0.52f) SpawnAlienNumber(position);
+        else if (r < 0.82f) SpawnOperator(position);
+        else if (r < 0.90f) SpawnBracket(position);
+        else SpawnPowerup(position);
     }
 
     void SpawnAlienNumber(Vector2 position) {
@@ -75,7 +81,7 @@ public class Spawner : MonoBehaviour {
         if (numComp != null) numComp.value = no;
 
         Rigidbody2D velo = x.GetComponent<Rigidbody2D>();
-        if (velo != null) velo.linearVelocity = new Vector2(0, -this.velocity);
+        if (velo != null) velo.linearVelocity = new Vector2(0, -this.velocity * speedMultiplier);
     }
 
     void SpawnDigitTarget(Vector2 position) {
@@ -93,7 +99,19 @@ public class Spawner : MonoBehaviour {
 
         Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
         rb.gravityScale = 0f;
-        rb.linearVelocity = new Vector2(0, -this.velocity);
+        rb.linearVelocity = new Vector2(0, -this.velocity * speedMultiplier);
+    }
+
+    void SpawnPowerup(Vector2 position) {
+        PowerupPickup.Type[] types = { PowerupPickup.Type.Freeze, PowerupPickup.Type.Bomb, PowerupPickup.Type.DoubleDamage, PowerupPickup.Type.ExtraLife };
+        PowerupPickup.Type chosen = types[Random.Range(0, types.Length)];
+        GameObject go = new GameObject("powerup");
+        go.transform.position = position;
+        go.AddComponent<PowerupPickup>().Setup(chosen);
+
+        Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
+        rb.gravityScale = 0f;
+        rb.linearVelocity = new Vector2(0, -this.velocity * speedMultiplier);
     }
 
     void SpawnOperator(Vector2 position) {
@@ -122,7 +140,7 @@ public class Spawner : MonoBehaviour {
 
         Rigidbody2D rb = go.AddComponent<Rigidbody2D>();
         rb.gravityScale = 0f;
-        rb.linearVelocity = new Vector2(0, -this.velocity);
+        rb.linearVelocity = new Vector2(0, -this.velocity * speedMultiplier);
     }
 
     public void SetDifficulty(float interval, float fallVelocity) {

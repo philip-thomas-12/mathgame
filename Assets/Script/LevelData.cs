@@ -57,14 +57,15 @@ public class LevelData : ScriptableObject {
         // material.
         ADVANCED_QUIZ,
 
-        // Computer-arithmetic basics: carries/borrows shown as the boss's
-        // "calculation" on a panel; the player builds an expression that
-        // produces the correct digit. Boss HP = number of problems.
-        COMPUTER_ARITHMETIC_BASICS,
+        // Level 4: The Missing x - Invert algebraic equations to find x
+        ALGEBRA_SOLVER,
 
-        // Computer-arithmetic quiz: questions about binary/hex/complements,
-        // powers of two, overflow, and signed representation.
-        COMPUTER_ARITHMETIC_QUIZ
+        // Level 5: Trajectory Curve Interceptor - Defend against parabolic shells (y = ax^2 + bx + c)
+        TRAJECTORY_INTERCEPTOR,
+
+        // Legacy / Computer-arithmetic modes (kept for backwards compatibility)
+        COMPUTER_ARITHMETIC_BASICS = ALGEBRA_SOLVER,
+        COMPUTER_ARITHMETIC_QUIZ = TRAJECTORY_INTERCEPTOR
     }
 
     public GameMode mode = GameMode.BODMAS;

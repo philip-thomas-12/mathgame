@@ -58,12 +58,12 @@ public static class LevelCatalog {
         list.Add(Build("LEVEL 3 - HIGH-LEVEL MATH QUIZ",
                        "Powers, brackets and negatives",
                        LevelData.GameMode.ADVANCED_QUIZ, 0, 8, 2, DefaultAdvancedQuiz()));
-        list.Add(Build("LEVEL 4 - COMPUTER ARITHMETIC BASICS",
-                       "Hit the boss's target digit: column sums, carries & borrows",
-                       LevelData.GameMode.COMPUTER_ARITHMETIC_BASICS, 0, 8, 3, null));
-        list.Add(Build("LEVEL 5 - COMPUTER ARITHMETIC QUIZ",
-                       "Binary, hex and powers of two",
-                       LevelData.GameMode.COMPUTER_ARITHMETIC_QUIZ, 0, 6, 4, DefaultCompQuiz()));
+        list.Add(Build("LEVEL 4 - THE MISSING X",
+                       "Solve for x: calculate x from the boss's algebraic missile equations",
+                       LevelData.GameMode.ALGEBRA_SOLVER, 0, 6, 3, null));
+        list.Add(Build("LEVEL 5 - TRAJECTORY INTERCEPTOR",
+                       "Parabolic artillery defense: calculate roots & vertex coordinates of y = ax² + bx + c",
+                       LevelData.GameMode.TRAJECTORY_INTERCEPTOR, 0, 6, 4, null));
         return list.ToArray();
     }
 
